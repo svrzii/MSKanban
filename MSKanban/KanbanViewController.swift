@@ -22,7 +22,7 @@ class KanbanViewController: UIViewController {
         return scroll
     }()
 
-    private var tableViewData: [(name: String, tableView: UITableView, values: [String], title: String, color: UIColor)] = []
+    private var tableViewData: [(name: String, tableView: UITableView, values: [String], detailValues: [String], title: String, color: UIColor)] = []
 
     private var focus: (UITableView, IndexPath)?
     private var element: String?
@@ -56,11 +56,13 @@ class KanbanViewController: UIViewController {
 
             self.scrollView.addSubview(table)
             var values: [String] = []
+            var detailValues: [String] = []
 
             for i in 1...randomNumber(inRange: 1...10) {
                 values.append("\(index) - \(i)")
+                detailValues.append("\(randomNumber(inRange: 350...20000))")
             }
-            self.tableViewData.append((name: "table" + "\(index)", tableView: table, values: values, title: "\(index)", color: MSColor.colors().randomItem() ?? .red))
+            self.tableViewData.append((name: "table" + "\(index)", tableView: table, values: values, detailValues: detailValues, title: "\(index)", color: MSColor.colors().randomItem() ?? .red))
         }
 
         var horizontalString = "H:"
@@ -227,6 +229,7 @@ extension KanbanViewController: UITableViewDataSource {
             for data in self.tableViewData {
                 if data.tableView === tableView {
                     cell.titleLabel.text = data.values[indexPath.row]
+                    cell.subtitleLabel.text = data.detailValues[indexPath.row] + " $"
                     cell.colorView.backgroundColor = data.color
                     cell.avatarImageView.image = UIImage().avatarImageWithame(fullName: data.values[indexPath.row], size: CGSize(width: 35, height: 35), fontColor: UIColor(white: 1, alpha: 0.6), font: UIFont.systemFont(ofSize: 16))
                     break
