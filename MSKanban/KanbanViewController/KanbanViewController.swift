@@ -9,6 +9,8 @@
 import Foundation
 import UIKit
 
+public typealias TableViewData = (name: String, tableView: UITableView, values: [String], detailValues: [String], title: String, color: UIColor)
+
 class KanbanViewController: UIViewController {
     lazy var scrollView: UIScrollView = {
         let scroll = UIScrollView()
@@ -22,12 +24,25 @@ class KanbanViewController: UIViewController {
         return scroll
     }()
 
-    private var tableViewData: [(name: String, tableView: UITableView, values: [String], detailValues: [String], title: String, color: UIColor)] = []
+    private var tableViewData: [TableViewData] = []
+
+    private var standardWidthConstraints: [NSLayoutConstraint] = []
+    private var zoomedWidthConstraints: [NSLayoutConstraint] = []
+    private var standardVisualConstraint: [NSLayoutConstraint] = []
+    private var zoomedVisualConstraint: [NSLayoutConstraint] = []
 
     private var focus: (UITableView, IndexPath)?
-    private var element: String?
+    private var titleElement: String?
+    private var detailElement: String?
+
     private var snapshot: UIView?
     private var offset: CGPoint?
+    private var zoomed = false {
+        didSet {
+            self.scrollView.autoScrollMaxVelocity = self.zoomed ? 10 : 6
+            self.scrollView.isPagingEnabled = self.zoomed
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,15 +55,27 @@ class KanbanViewController: UIViewController {
         let longPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(self.longPressAction))
         self.scrollView.addGestureRecognizer(longPressGestureRecognizer)
 
+        let doubleTap = UITapGestureRecognizer(target: self, action:#selector(self.doubleTapAction))
+        doubleTap.numberOfTapsRequired = 2
+        self.scrollView.addGestureRecognizer(doubleTap)
+
         for index in 1...randomNumber(inRange: 4...12) {
             let table = UITableView(frame: .zero, style: .plain)
             table.tag = index - 1
             table.backgroundColor = .clear
-            table.layer.cornerRadius = 3
             table.showsVerticalScrollIndicator = false
             table.translatesAutoresizingMaskIntoConstraints = false
             table.separatorStyle = .none
             table.backgroundView?.backgroundColor = .clear
+            table.estimatedRowHeight = 140
+            table.estimatedSectionFooterHeight = 0
+            table.sectionHeaderHeight = 50
+            table.sectionFooterHeight = 50
+            table.estimatedSectionHeaderHeight = 50
+            table.estimatedSectionFooterHeight = 50
+            if #available(iOS 11.0, *) {
+                table.contentInsetAdjustmentBehavior = .never
+            }
             table.dataSource = self
             table.delegate = self
             table.register(UINib(nibName: "KanbanCell", bundle: nil), forCellReuseIdentifier: "KanbanCell")
@@ -70,21 +97,80 @@ class KanbanViewController: UIViewController {
         for (index, value) in self.tableViewData.enumerated() {
             self.view.addConstraint(NSLayoutConstraint(item: value.tableView, attribute: .centerY, relatedBy: .equal, toItem: self.view, attribute: .centerY, multiplier: 1, constant: 0))
             self.view.addConstraint(NSLayoutConstraint(item: value.tableView, attribute: .height, relatedBy: .equal, toItem: self.view, attribute: .height, multiplier: 0.9, constant: 0))
-            self.view.addConstraint(NSLayoutConstraint(item: value.tableView, attribute: .width, relatedBy: .equal, toItem: self.view, attribute: .width, multiplier: 0.5, constant: 0))
 
+            let standardWidthConstraints = NSLayoutConstraint(item: value.tableView, attribute: .width, relatedBy: .equal, toItem: self.view, attribute: .width, multiplier: 0.5, constant: 0)
+            standardWidthConstraints.priority = UILayoutPriority(rawValue: 2)
+            self.view.addConstraint(standardWidthConstraints)
+            self.standardWidthConstraints.append(standardWidthConstraints)
+
+            let zoomedWidthConstraints = NSLayoutConstraint(item: value.tableView, attribute: .width, relatedBy: .equal, toItem: self.view, attribute: .width, multiplier: 1, constant: 0)
+            zoomedWidthConstraints.priority = UILayoutPriority(rawValue: 1)
+            self.view.addConstraint(zoomedWidthConstraints)
+            self.zoomedWidthConstraints.append(zoomedWidthConstraints)
 
             if index == 0 {
-                horizontalString += "|-10-[" + value.name + "]"
+                horizontalString += "|-0-[" + value.name + "]"
             } else if index == self.tableViewData.count - 1 {
-                horizontalString += "-5-[" + value.name + "]-10-|"
+                horizontalString += "-0-[" + value.name + "]-0-|"
             } else {
-                horizontalString += "-5-[" + value.name + "]"
+                horizontalString += "-0-[" + value.name + "]"
             }
 
             tableViewsDict[value.name] = value.tableView
         }
 
-        self.view.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: horizontalString, options: [], metrics: nil, views: tableViewsDict))
+        self.zoomedVisualConstraint = NSLayoutConstraint.constraints(withVisualFormat: horizontalString, options: [], metrics: nil, views: tableViewsDict)
+        self.standardVisualConstraint = NSLayoutConstraint.constraints(withVisualFormat: horizontalString.replacingOccurrences(of: "-0-", with: "-1-"), options: [], metrics: nil, views: tableViewsDict)
+
+        for constraint in self.standardVisualConstraint {
+            constraint.priority = UILayoutPriority(rawValue: 2)
+        }
+
+        for constraint in self.zoomedVisualConstraint {
+            constraint.priority = UILayoutPriority(rawValue: 1)
+        }
+
+        self.view.addConstraints(self.standardVisualConstraint)
+        self.view.addConstraints(self.zoomedVisualConstraint)
+    }
+
+    @objc func doubleTapAction(gr: UITapGestureRecognizer) {
+        self.zoomed = !self.zoomed
+
+        for constraint in self.standardWidthConstraints {
+            constraint.priority = self.zoomed ? UILayoutPriority(rawValue: 1) : UILayoutPriority(rawValue: 2)
+        }
+
+        for constraint in self.zoomedWidthConstraints {
+            constraint.priority = self.zoomed ? UILayoutPriority(rawValue: 2) : UILayoutPriority(rawValue: 1)
+        }
+
+        for constraint in self.standardVisualConstraint {
+            constraint.priority = self.zoomed ? UILayoutPriority(rawValue: 1) : UILayoutPriority(rawValue: 2)
+        }
+
+        for constraint in self.zoomedVisualConstraint {
+            constraint.priority = self.zoomed ? UILayoutPriority(rawValue: 2) : UILayoutPriority(rawValue: 1)
+        }
+
+        let location = gr.location(in: self.scrollView)
+        var table: UITableView? = nil
+
+        if let (tableView, _) = self.convertPointToIndexPath(point: location) {
+            table = tableView
+        }
+
+        UIView.animate(withDuration: 0.3, animations: {
+            self.scrollView.layoutIfNeeded()
+
+            for data in self.tableViewData {
+                data.tableView.layoutIfNeeded()
+            }
+
+            if let table = table {
+                self.scrollView.setContentOffset(CGPoint(x: table.frame.origin.x, y: 0), animated: false)
+            }
+        })
     }
 
     @objc func longPressAction(gr: UILongPressGestureRecognizer) {
@@ -93,44 +179,60 @@ class KanbanViewController: UIViewController {
             gr.isEnabled = true
         }
 
-        let location = gr.location(in: scrollView)
+        let location = gr.location(in: self.scrollView)
         switch gr.state {
         case .began:
-            scrollView.autoScrollDragStarted()
-            guard let (tableView, indexPath) = convertPointToIndexPath(point: location) else { cancelAction(); return }
-            guard tableView.cellForRow(at: indexPath) != nil else { cancelAction(); return }
+            self.scrollView.autoScrollDragStarted()
+            guard let (tableView, indexPath) = self.convertPointToIndexPath(point: location) else {
+                cancelAction()
+                return
+            }
+
+            guard tableView.cellForRow(at: indexPath) != nil else {
+                cancelAction()
+                return
+            }
 
             for (i, value) in self.tableViewData.enumerated().reversed() {
                 if tableView === value.tableView {
-                    self.element = self.tableViewData[i].values.remove(at: indexPath.row)
+                    self.titleElement = self.tableViewData[i].values.remove(at: indexPath.row)
+                    self.detailElement = self.tableViewData[i].detailValues.remove(at: indexPath.row)
                     break
                 }
             }
 
             // Make a snapshot of the cell
             let cell = tableView.cellForRow(at: indexPath) as! KanbanCell
-            offset = gr.location(in: cell)
+            self.offset = gr.location(in: cell)
 
-            let snapshot = cell.cellView.snapshotView(afterScreenUpdates: true)
-            snapshot?.frame = scrollView.convert(cell.cellView.frame, from: cell.cellView.superview)
-            scrollView.addSubview(snapshot!)
+            if let snapshot = cell.cellView.snapshotView(afterScreenUpdates: true) {
+                snapshot.frame = scrollView.convert(cell.cellView.frame, from: cell.cellView.superview)
+                self.scrollView.addSubview(snapshot)
+                snapshot.removeConstraints(snapshot.constraints)
+                self.snapshot = snapshot
+            }
 
-            self.snapshot = snapshot
-
-            focus = (tableView, indexPath)
+            self.focus = (tableView, indexPath)
 
             tableView.reloadRows(at: [indexPath], with: .fade)
         case .changed:
-            guard let focus = focus else { cancelAction(); return }
+            guard let focus = self.focus else {
+                cancelAction()
+                return
+            }
 
-            var offsetLocation = location
-            offsetLocation.x -= offset!.x
-            offsetLocation.y -= offset!.y
-            snapshot!.frame.origin = offsetLocation
+            if let offset = self.offset {
+                var offsetLocation = location
+                offsetLocation.x -= offset.x
+                offsetLocation.y -= offset.y
+                UIView.animate(withDuration: 0.1) {
+                    self.snapshot?.frame.origin = offsetLocation
+                }
+            }
 
-            scrollView.autoScrollDragMoved(location)
+            self.scrollView.autoScrollDragMoved(location)
 
-            guard let (tableView, indexPath) = convertPointToIndexPath(point: location) else { return }
+            guard let (tableView, indexPath) = self.convertPointToIndexPath(point: location) else { return }
 
             if tableView === focus.0 {
                 // Simply move row
@@ -145,26 +247,29 @@ class KanbanViewController: UIViewController {
                 tableView.insertRows(at: [indexPath], with: .fade)
             }
         case .ended, .failed, .cancelled:
+            self.scrollView.autoScrollDragEnded()
+            guard let _ = self.focus else {
+                return
+            }
 
-            scrollView.autoScrollDragEnded()
-            guard let _ = focus else { return }
-
-            if let (tableView, indexPath) = convertPointToIndexPath(point: location) ?? focus {
+            if let (tableView, indexPath) = self.convertPointToIndexPath(point: location) ?? self.focus {
                 self.focus = nil
 
                 for (i, value) in self.tableViewData.enumerated() {
                     if tableView === value.tableView {
-                        if let element = self.element {
-                            self.tableViewData[i].values.insert(element, at: indexPath.row)
+                        if let titleElement = self.titleElement, let detailElement = self.detailElement {
+                            self.tableViewData[i].values.insert(titleElement, at: indexPath.row)
+                            self.tableViewData[i].detailValues.insert(detailElement, at: indexPath.row)
+
                         }
                         break
                     }
                 }
 
-                element = nil
+                self.titleElement = nil
+                self.detailElement = nil
                 self.snapshot?.removeFromSuperview()
                 self.snapshot = nil
-
                 tableView.reloadRows(at: [indexPath], with: .fade)
             }
         default:
@@ -211,7 +316,7 @@ extension KanbanViewController: UITableViewDataSource {
         for data in self.tableViewData {
             if data.tableView === tableView {
 
-                return focus?.0 === tableView ? data.values.count + 1 : data.values.count
+                return self.focus?.0 === tableView ? data.values.count + 1 : data.values.count
             }
         }
 
@@ -220,6 +325,10 @@ extension KanbanViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "KanbanCell", for: indexPath) as! KanbanCell
+        if indexPath.row == 0 {
+            cell.topConstraint.constant = 5
+        }
+
         if let (tv, ip) = focus, tv === tableView && ip == indexPath {
             cell.cellView.alpha = 0.0
         } else {
@@ -266,6 +375,8 @@ extension KanbanViewController: UITableViewDataSource {
             headerView.textLabel?.font = MSFont.lightFontWithSize(15)
             headerView.textLabel?.backgroundColor = .clear
             headerView.contentView.backgroundColor = MSColor.headerColor()
+            headerView.addBorders(edges: [.bottom], color: .white, thickness: 1)
+
 
             return headerView
         }
@@ -279,6 +390,7 @@ extension KanbanViewController: UITableViewDataSource {
             headerView.textLabel?.font = MSFont.lightFontWithSize(15)
             headerView.textLabel?.backgroundColor = .clear
             headerView.contentView.backgroundColor = MSColor.headerColor()
+            headerView.addBorders(edges: [.top], color: .white, thickness: 1)
 
             return headerView
         }
@@ -294,4 +406,3 @@ extension KanbanViewController: UITableViewDataSource {
         return 50
     }
 }
-

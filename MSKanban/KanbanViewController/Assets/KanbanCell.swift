@@ -16,7 +16,7 @@ class KanbanCell: UITableViewCell {
     @IBOutlet var subtitleLabel: UILabel!
     @IBOutlet var avatarImageView: UIImageView!
     @IBOutlet var cellView: UIView!
-
+    @IBOutlet var topConstraint: NSLayoutConstraint!
     override func awakeFromNib() {
         self.backgroundColor = .white
         self.contentView.backgroundColor = MSColor.defaultColor()

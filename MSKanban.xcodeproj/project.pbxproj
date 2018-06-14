@@ -111,11 +111,10 @@
 		075F8DB120D1351A0031D2EF /* MSKanban */ = {
 			isa = PBXGroup;
 			children = (
-				075F8DED20D137460031D2EF /* Helpers */,
 				075F8DB220D1351A0031D2EF /* AppDelegate.swift */,
-				075F8DE820D136270031D2EF /* Assets */,
-				075F8DE020D135810031D2EF /* KanbanViewController.swift */,
-				075F8DB620D1351A0031D2EF /* Main.storyboard */,
+				075F8DE920D136710031D2EF /* MSKanban-Bridging-Header.h */,
+				075F8DED20D137460031D2EF /* Helpers */,
+				075F8DF220D27CA40031D2EF /* KanbanViewController */,
 				075F8DB920D1351C0031D2EF /* Assets.xcassets */,
 				075F8DBB20D1351C0031D2EF /* LaunchScreen.storyboard */,
 				075F8DBE20D1351C0031D2EF /* Info.plist */,
@@ -144,11 +143,8 @@
 		075F8DE820D136270031D2EF /* Assets */ = {
 			isa = PBXGroup;
 			children = (
-				075F8DEA20D136720031D2EF /* UIScrollView+AtkDragAndDrop.h */,
-				075F8DEB20D136720031D2EF /* UIScrollView+AtkDragAndDrop.m */,
 				075F8DE220D135E50031D2EF /* KanbanCell.swift */,
 				075F8DE320D135E50031D2EF /* KanbanCell.xib */,
-				075F8DE920D136710031D2EF /* MSKanban-Bridging-Header.h */,
 			);
 			path = Assets;
 			sourceTree = "<group>";
@@ -156,11 +152,23 @@
 		075F8DED20D137460031D2EF /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				075F8DE620D136200031D2EF /* extensions.swift */,
 				075F8DEE20D1375B0031D2EF /* MSColor.swift */,
 				075F8DF020D137F50031D2EF /* MSFont.swift */,
-				075F8DE620D136200031D2EF /* extensions.swift */,
+				075F8DEA20D136720031D2EF /* UIScrollView+AtkDragAndDrop.h */,
+				075F8DEB20D136720031D2EF /* UIScrollView+AtkDragAndDrop.m */,
 			);
 			path = Helpers;
+			sourceTree = "<group>";
+		};
+		075F8DF220D27CA40031D2EF /* KanbanViewController */ = {
+			isa = PBXGroup;
+			children = (
+				075F8DE820D136270031D2EF /* Assets */,
+				075F8DE020D135810031D2EF /* KanbanViewController.swift */,
+				075F8DB620D1351A0031D2EF /* Main.storyboard */,
+			);
+			path = KanbanViewController;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

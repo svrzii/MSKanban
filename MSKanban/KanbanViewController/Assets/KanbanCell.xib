@@ -19,7 +19,7 @@
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0GF-Rs-eUg">
-                        <rect key="frame" x="5" y="5" width="439" height="130.5"/>
+                        <rect key="frame" x="5" y="0.0" width="439" height="130.5"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3Xg-Np-3QR">
                                 <rect key="frame" x="0.0" y="0.0" width="439" height="5"/>
@@ -71,8 +71,8 @@
                 <constraints>
                     <constraint firstAttribute="trailing" secondItem="0GF-Rs-eUg" secondAttribute="trailing" constant="5" id="1Ur-uD-Vqr"/>
                     <constraint firstItem="0GF-Rs-eUg" firstAttribute="leading" secondItem="Ut2-Fn-3e6" secondAttribute="leading" constant="5" id="PsZ-NH-hGO"/>
-                    <constraint firstAttribute="bottom" secondItem="0GF-Rs-eUg" secondAttribute="bottom" id="aU5-rB-2AN"/>
-                    <constraint firstItem="0GF-Rs-eUg" firstAttribute="top" secondItem="Ut2-Fn-3e6" secondAttribute="top" constant="5" id="bfT-rS-9FN"/>
+                    <constraint firstAttribute="bottom" secondItem="0GF-Rs-eUg" secondAttribute="bottom" constant="5" id="aU5-rB-2AN"/>
+                    <constraint firstItem="0GF-Rs-eUg" firstAttribute="top" secondItem="Ut2-Fn-3e6" secondAttribute="top" id="bfT-rS-9FN"/>
                 </constraints>
             </tableViewCellContentView>
             <connections>
@@ -81,6 +81,7 @@
                 <outlet property="colorView" destination="3Xg-Np-3QR" id="C7u-Ow-EkM"/>
                 <outlet property="subtitleLabel" destination="jUL-yy-0Zt" id="YVT-Ps-sg7"/>
                 <outlet property="titleLabel" destination="SGE-Ou-Qkm" id="DKo-Ht-aut"/>
+                <outlet property="topConstraint" destination="bfT-rS-9FN" id="fjj-6E-5nB"/>
             </connections>
             <point key="canvasLocation" x="5.5" y="-430"/>
         </tableViewCell>
