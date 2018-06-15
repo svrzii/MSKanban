@@ -21,12 +21,11 @@ class KanbanCell: UITableViewCell {
         self.backgroundColor = .white
         self.contentView.backgroundColor = MSColor.defaultColor()
         self.colorView.clipsToBounds = true
-        self.cellView.clipsToBounds = true
-        self.cellView.layer.cornerRadius = 3
-        self.cellView.layer.borderColor = MSColor.cellBorderColor().cgColor
-        self.cellView.layer.borderWidth = 0.5
         self.avatarImageView.layer.cornerRadius = 20
         self.avatarImageView.clipsToBounds = true
+        self.cellView.backgroundColor = .white
+        self.cellView.clipsToBounds = true
+        self.cellView.layer.cornerRadius = 3
     }
 }
 

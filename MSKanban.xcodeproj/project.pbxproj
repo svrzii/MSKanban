@@ -493,7 +493,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.svrznjak.MSKanban;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "MSKanban/Assets/MSKanban-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "MSKanban/MSKanban-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -514,7 +514,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.svrznjak.MSKanban;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "MSKanban/Assets/MSKanban-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "MSKanban/MSKanban-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

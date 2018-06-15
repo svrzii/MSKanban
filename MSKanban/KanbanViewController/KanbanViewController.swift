@@ -78,6 +78,8 @@ class KanbanViewController: UIViewController {
             }
             table.dataSource = self
             table.delegate = self
+            table.autoScrollMaxVelocity = 8
+            table.autoScrollVelocity = 1
             table.register(UINib(nibName: "KanbanCell", bundle: nil), forCellReuseIdentifier: "KanbanCell")
             table.register(UITableViewHeaderFooterView.self, forHeaderFooterViewReuseIdentifier: "HeaderView")
 
@@ -182,6 +184,9 @@ class KanbanViewController: UIViewController {
         let location = gr.location(in: self.scrollView)
         switch gr.state {
         case .began:
+            for table in self.tableViewData {
+                table.tableView.autoScrollDragStarted()
+            }
             self.scrollView.autoScrollDragStarted()
             guard let (tableView, indexPath) = self.convertPointToIndexPath(point: location) else {
                 cancelAction()
@@ -204,6 +209,8 @@ class KanbanViewController: UIViewController {
             // Make a snapshot of the cell
             let cell = tableView.cellForRow(at: indexPath) as! KanbanCell
             self.offset = gr.location(in: cell)
+
+            cell.cellView.backgroundColor = UIColor(white: 1, alpha: 0.7)
 
             if let snapshot = cell.cellView.snapshotView(afterScreenUpdates: true) {
                 snapshot.frame = scrollView.convert(cell.cellView.frame, from: cell.cellView.superview)
@@ -232,6 +239,14 @@ class KanbanViewController: UIViewController {
 
             self.scrollView.autoScrollDragMoved(location)
 
+            for table in self.tableViewData {
+                if focus.0 === table.tableView {
+                    let tableLocation = gr.location(in: table.tableView)
+                    table.tableView.autoScrollDragMoved(tableLocation)
+                    break
+                }
+            }
+
             guard let (tableView, indexPath) = self.convertPointToIndexPath(point: location) else { return }
 
             if tableView === focus.0 {
@@ -248,6 +263,10 @@ class KanbanViewController: UIViewController {
             }
         case .ended, .failed, .cancelled:
             self.scrollView.autoScrollDragEnded()
+
+            for table in self.tableViewData {
+                table.tableView.autoScrollDragEnded()
+            }
             guard let _ = self.focus else {
                 return
             }
@@ -325,22 +344,36 @@ extension KanbanViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "KanbanCell", for: indexPath) as! KanbanCell
-        if indexPath.row == 0 {
-            cell.topConstraint.constant = 5
-        }
+        cell.topConstraint.constant = indexPath.row == 0 ? 5 : 0
 
         if let (tv, ip) = focus, tv === tableView && ip == indexPath {
-            cell.cellView.alpha = 0.0
+            cell.cellView.alpha = 0.2
+            cell.cellView.backgroundColor = MSColor.defaultColor()
+            cell.titleLabel.text = self.titleElement
+            cell.titleLabel.backgroundColor = .black
+            cell.subtitleLabel.text = (self.detailElement ?? "") + " $"
+            cell.subtitleLabel.backgroundColor = .black
+            cell.colorView.backgroundColor = .black
+            cell.cellView.layer.borderColor = UIColor.black.cgColor
+            cell.cellView.layer.borderWidth = 0.5
+            cell.avatarImageView.image = UIImage().avatarImageWithame(fullName: "", size: CGSize(width: 35, height: 35), backgroundColor: .black, fontColor: .white, font: UIFont.systemFont(ofSize: 16))
+
         } else {
             cell.cellView.alpha = 1.0
-            cell.cellView.backgroundColor = .white
-
+            cell.cellView.layer.borderColor = MSColor.cellBorderColor().cgColor
+            cell.cellView.layer.borderWidth = 0.5
+            cell.titleLabel.backgroundColor = .clear
+            cell.subtitleLabel.backgroundColor = .clear
             for data in self.tableViewData {
                 if data.tableView === tableView {
-                    cell.titleLabel.text = data.values[indexPath.row]
-                    cell.subtitleLabel.text = data.detailValues[indexPath.row] + " $"
+                    if data.values.indices.contains(indexPath.row) {
+                        cell.titleLabel.text = data.values[indexPath.row]
+                        cell.avatarImageView.image = UIImage().avatarImageWithame(fullName: data.values[indexPath.row], size: CGSize(width: 35, height: 35), fontColor: .white, font: MSFont.mediumFontWithSize(15))
+                    }
+                    if data.detailValues.indices.contains(indexPath.row) {
+                        cell.subtitleLabel.text = data.detailValues[indexPath.row] + " $"
+                    }
                     cell.colorView.backgroundColor = data.color
-                    cell.avatarImageView.image = UIImage().avatarImageWithame(fullName: data.values[indexPath.row], size: CGSize(width: 35, height: 35), fontColor: UIColor(white: 1, alpha: 0.6), font: UIFont.systemFont(ofSize: 16))
                     break
                 }
             }

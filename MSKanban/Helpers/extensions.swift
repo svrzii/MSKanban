@@ -22,7 +22,7 @@ extension UIImage {
     func initialsForName(_ name: String) -> String {
         var finalChars: String = ""
         guard name.indices.contains(name.startIndex) else {
-            return "/"
+            return ""
         }
         let arrayStrings = name.components(separatedBy: " ")
         for string in arrayStrings {
@@ -36,8 +36,7 @@ extension UIImage {
         return finalChars.uppercased()
     }
 
-    func avatarImageWithame(fullName: String, size: CGSize = CGSize(width: 75, height: 75), fontColor: UIColor, font: UIFont) -> UIImage? {
-        let backgroundColor = MSColor.cellBorderColor()
+    func avatarImageWithame(fullName: String, size: CGSize = CGSize(width: 75, height: 75), backgroundColor: UIColor = MSColor.cellBorderColor(), fontColor: UIColor, font: UIFont) -> UIImage? {
 
         let imageRect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
         UIGraphicsBeginImageContextWithOptions(imageRect.size, false, 0)
