@@ -31,7 +31,7 @@ class KanbanViewController: UIViewController {
     private var standardVisualConstraint: [NSLayoutConstraint] = []
     private var zoomedVisualConstraint: [NSLayoutConstraint] = []
 
-    private var focus: (UITableView, IndexPath)?
+    private var focus: (tableView: UITableView, indexPath: IndexPath)?
     private var titleElement: String?
     private var detailElement: String?
 
@@ -79,7 +79,7 @@ class KanbanViewController: UIViewController {
             table.dataSource = self
             table.delegate = self
             table.autoScrollMaxVelocity = 8
-            table.autoScrollVelocity = 1
+            table.autoScrollEdgeTollerance = 150
             table.register(UINib(nibName: "KanbanCell", bundle: nil), forCellReuseIdentifier: "KanbanCell")
             table.register(UITableViewHeaderFooterView.self, forHeaderFooterViewReuseIdentifier: "HeaderView")
 
@@ -199,24 +199,27 @@ class KanbanViewController: UIViewController {
             }
 
             for (i, value) in self.tableViewData.enumerated().reversed() {
-                if tableView === value.tableView {
-                    self.titleElement = self.tableViewData[i].values.remove(at: indexPath.row)
-                    self.detailElement = self.tableViewData[i].detailValues.remove(at: indexPath.row)
-                    break
+                if tableView !== value.tableView {
+                    continue
                 }
+
+                self.titleElement = self.tableViewData[i].values.remove(at: indexPath.row)
+                self.detailElement = self.tableViewData[i].detailValues.remove(at: indexPath.row)
+                break
             }
 
             // Make a snapshot of the cell
             let cell = tableView.cellForRow(at: indexPath) as! KanbanCell
             self.offset = gr.location(in: cell)
 
-            cell.cellView.backgroundColor = UIColor(white: 1, alpha: 0.7)
+            cell.cellView.backgroundColor = UIColor.white
 
             if let snapshot = cell.cellView.snapshotView(afterScreenUpdates: true) {
                 snapshot.frame = scrollView.convert(cell.cellView.frame, from: cell.cellView.superview)
                 self.scrollView.addSubview(snapshot)
                 snapshot.removeConstraints(snapshot.constraints)
                 self.snapshot = snapshot
+                self.snapshot?.alpha = 0.7
             }
 
             self.focus = (tableView, indexPath)
@@ -240,18 +243,20 @@ class KanbanViewController: UIViewController {
             self.scrollView.autoScrollDragMoved(location)
 
             for table in self.tableViewData {
-                if focus.0 === table.tableView {
-                    let tableLocation = gr.location(in: table.tableView)
-                    table.tableView.autoScrollDragMoved(tableLocation)
-                    break
+                if focus.tableView !== table.tableView {
+                    continue
                 }
+
+                let tableLocation = gr.location(in: table.tableView)
+                table.tableView.autoScrollDragMoved(tableLocation)
+                break
             }
 
             guard let (tableView, indexPath) = self.convertPointToIndexPath(point: location) else { return }
 
-            if tableView === focus.0 {
+            if tableView === focus.tableView {
                 // Simply move row
-                let oldIndexPath = focus.1
+                let oldIndexPath = focus.indexPath
                 self.focus = (tableView, indexPath)
                 tableView.moveRow(at: oldIndexPath, to: indexPath)
             } else {
@@ -273,23 +278,41 @@ class KanbanViewController: UIViewController {
 
             if let (tableView, indexPath) = self.convertPointToIndexPath(point: location) ?? self.focus {
                 self.focus = nil
-
                 for (i, value) in self.tableViewData.enumerated() {
-                    if tableView === value.tableView {
-                        if let titleElement = self.titleElement, let detailElement = self.detailElement {
-                            self.tableViewData[i].values.insert(titleElement, at: indexPath.row)
-                            self.tableViewData[i].detailValues.insert(detailElement, at: indexPath.row)
-
-                        }
-                        break
+                    if tableView !== value.tableView {
+                        continue
                     }
+
+                    if let titleElement = self.titleElement, let detailElement = self.detailElement {
+                        self.tableViewData[i].values.insert(titleElement, at: indexPath.row)
+                        self.tableViewData[i].detailValues.insert(detailElement, at: indexPath.row)
+                    }
+                    break
                 }
 
                 self.titleElement = nil
                 self.detailElement = nil
-                self.snapshot?.removeFromSuperview()
-                self.snapshot = nil
-                tableView.reloadRows(at: [indexPath], with: .fade)
+
+                guard let snapshot = self.snapshot else {
+                    return
+                }
+
+                UIView.transition(with: snapshot, duration: 0.3, options: .curveEaseOut, animations: {
+                    let cell = tableView.cellForRow(at: indexPath) as! KanbanCell
+                    let frame = self.scrollView.convert(cell.cellView.frame, from: cell.cellView.superview)
+                    self.snapshot?.frame.origin = frame.origin
+                    self.snapshot?.alpha = 1
+                }) { (finished) in
+                    tableView.reloadRows(at: [indexPath], with: .none)
+                }
+
+                UIView.animate(withDuration: 0.2, delay: 0.3, options: .curveLinear, animations: {
+                    self.snapshot?.alpha = 0
+                }) { (finished) in
+                    self.snapshot?.removeFromSuperview()
+                    self.snapshot = nil
+                }
+
             }
         default:
             break
@@ -299,7 +322,7 @@ class KanbanViewController: UIViewController {
     func convertPointToIndexPath(point: CGPoint) -> (UITableView, IndexPath)? {
         if let tableView = self.tableViewData.filter({ $0.tableView.frame.contains(point) }).first?.tableView {
             let localPoint = self.scrollView.convert(point, to: tableView)
-            let lastRowIndex = self.focus?.0 === tableView ? tableView.numberOfRows(inSection: 0) - 1 : tableView.numberOfRows(inSection: 0)
+            let lastRowIndex = self.focus?.tableView === tableView ? tableView.numberOfRows(inSection: 0) - 1 : tableView.numberOfRows(inSection: 0)
             let indexPath = tableView.indexPathForRow(at: localPoint) ?? IndexPath(row: lastRowIndex, section: 0)
             return (tableView, indexPath)
         }
@@ -333,10 +356,11 @@ extension KanbanViewController: UITableViewDelegate {
 extension KanbanViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         for data in self.tableViewData {
-            if data.tableView === tableView {
-
-                return self.focus?.0 === tableView ? data.values.count + 1 : data.values.count
+            if data.tableView !== tableView {
+                continue
             }
+
+            return self.focus?.tableView === tableView ? data.values.count + 1 : data.values.count
         }
 
         return 0
@@ -346,7 +370,7 @@ extension KanbanViewController: UITableViewDataSource {
         let cell = tableView.dequeueReusableCell(withIdentifier: "KanbanCell", for: indexPath) as! KanbanCell
         cell.topConstraint.constant = indexPath.row == 0 ? 5 : 0
 
-        if let (tv, ip) = focus, tv === tableView && ip == indexPath {
+        if let (tv, ip) = self.focus, tv === tableView && ip == indexPath {
             cell.cellView.alpha = 0.2
             cell.cellView.backgroundColor = MSColor.defaultColor()
             cell.titleLabel.text = self.titleElement
@@ -357,25 +381,31 @@ extension KanbanViewController: UITableViewDataSource {
             cell.cellView.layer.borderColor = UIColor.black.cgColor
             cell.cellView.layer.borderWidth = 0.5
             cell.avatarImageView.image = UIImage().avatarImageWithame(fullName: "", size: CGSize(width: 35, height: 35), backgroundColor: .black, fontColor: .white, font: UIFont.systemFont(ofSize: 16))
-
         } else {
+            var indexPathUpdated = indexPath
+            if let (tv, ip) = self.focus, tv === tableView, ip.row < indexPath.row {
+                indexPathUpdated = IndexPath(row: indexPath.row - 1, section: 0)
+            }
+
             cell.cellView.alpha = 1.0
             cell.cellView.layer.borderColor = MSColor.cellBorderColor().cgColor
             cell.cellView.layer.borderWidth = 0.5
             cell.titleLabel.backgroundColor = .clear
             cell.subtitleLabel.backgroundColor = .clear
             for data in self.tableViewData {
-                if data.tableView === tableView {
-                    if data.values.indices.contains(indexPath.row) {
-                        cell.titleLabel.text = data.values[indexPath.row]
-                        cell.avatarImageView.image = UIImage().avatarImageWithame(fullName: data.values[indexPath.row], size: CGSize(width: 35, height: 35), fontColor: .white, font: MSFont.mediumFontWithSize(15))
-                    }
-                    if data.detailValues.indices.contains(indexPath.row) {
-                        cell.subtitleLabel.text = data.detailValues[indexPath.row] + " $"
-                    }
-                    cell.colorView.backgroundColor = data.color
-                    break
+                if data.tableView !== tableView {
+                    continue
                 }
+
+                if data.values.indices.contains(indexPathUpdated.row) {
+                    cell.titleLabel.text = data.values[indexPathUpdated.row]
+                    cell.avatarImageView.image = UIImage().avatarImageWithame(fullName: data.values[indexPathUpdated.row], size: CGSize(width: 35, height: 35), fontColor: .white, font: MSFont.mediumFontWithSize(15))
+                }
+                if data.detailValues.indices.contains(indexPathUpdated.row) {
+                    cell.subtitleLabel.text = data.detailValues[indexPathUpdated.row] + " $"
+                }
+                cell.colorView.backgroundColor = data.color
+                break
             }
         }
 
@@ -384,9 +414,11 @@ extension KanbanViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         for data in self.tableViewData {
-            if data.tableView === tableView {
-                return data.title + " TITLE"
+            if data.tableView !== tableView {
+                continue
             }
+
+            return data.title + " TITLE"
         }
 
         return ""
@@ -394,9 +426,11 @@ extension KanbanViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         for data in self.tableViewData {
-            if data.tableView === tableView {
-                return data.title + " SUBTITLE"
+            if data.tableView !== tableView {
+                continue
             }
+
+            return data.title + " SUBTITLE"
         }
 
         return ""
@@ -409,7 +443,6 @@ extension KanbanViewController: UITableViewDataSource {
             headerView.textLabel?.backgroundColor = .clear
             headerView.contentView.backgroundColor = MSColor.headerColor()
             headerView.addBorders(edges: [.bottom], color: .white, thickness: 1)
-
 
             return headerView
         }
