@@ -2,5 +2,5 @@
 
 ### EXAMPLE
 
-<img src="https://imgur.com/a/ngELW5S" width="350" align="middle">    
+<img src="https://i.imgur.com/OyJt7AW.gif" width="350" align="middle">    
 
