@@ -346,12 +346,20 @@ class KanbanViewController: UIViewController {
                 self.titleElement = nil
                 self.detailElement = nil
 
-                guard let snapshot = self.snapshot, let cell = tableView.cellForRow(at: indexPath) as? KanbanCell else {
+                guard let snapshot = self.snapshot else {
                     return
                 }
 
+                let frame: CGRect
+                if let cell = tableView.cellForRow(at: indexPath) as? KanbanCell {
+                    frame = self.scrollView.convert(cell.cellView.frame, from: cell.cellView.superview)
+                } else if let lastVisibleCell = tableView.visibleCells.last as? KanbanCell {
+                    frame = self.scrollView.convert(lastVisibleCell.frame, from: lastVisibleCell.cellView.superview)
+                } else {
+                    frame = tableView.frame
+                }
+
                 UIView.transition(with: snapshot, duration: 0.2, options: .curveEaseOut, animations: {
-                    let frame = self.scrollView.convert(cell.cellView.frame, from: cell.cellView.superview)
                     snapshot.frame.origin = frame.origin
                     snapshot.alpha = 1
                 }) { (finished) in
@@ -362,8 +370,10 @@ class KanbanViewController: UIViewController {
                     }) { (finished) in
                         snapshot.removeFromSuperview()
                         self.snapshot = nil
-                        cell.cellView.backgroundColor = .white
-                        self.configure(tableView: tableView, cell: cell, indexPath: indexPath)
+                        if let cell = tableView.cellForRow(at: indexPath) as? KanbanCell {
+                            cell.cellView.backgroundColor = .white
+                            self.configure(tableView: tableView, cell: cell, indexPath: indexPath)
+                        }
                     }
                 }
             }
